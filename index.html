@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Zone Converter & Alarm</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        input, select, button {
+            margin: 10px 0;
+            padding: 5px;
+            width: 100%;
+        }
+        #result, #alarms {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Time Zone Converter & Alarm</h1>
+    
+    <h2>Time Zone Converter</h2>
+    <input type="datetime-local" id="inputTime">
+    <select id="fromTimezone"></select>
+    <select id="toTimezone"></select>
+    <button onclick="convertTime()">Convert</button>
+    <div id="result"></div>
+    
+    <h2>Set Alarm</h2>
+    <input type="datetime-local" id="alarmTime">
+    <input type="text" id="eventTitle" placeholder="Event Title">
+    <button onclick="setAlarm()">Set Alarm</button>
+    <div id="alarms"></div>
+
+    <script>
+        const timezones = [
+            'GMT', 'EST', 'CST', 'MST', 'PST', 'BST', 'IST', 'JST', 'AEST', 'NZST'
+        ];
+
+        function populateTimezones() {
+            const fromSelect = document.getElementById('fromTimezone');
+            const toSelect = document.getElementById('toTimezone');
+            timezones.forEach(tz => {
+                fromSelect.add(new Option(tz, tz));
+                toSelect.add(new Option(tz, tz));
+            });
+        }
+
+        function convertTime() {
+            const inputTime = new Date(document.getElementById('inputTime').value);
+            const fromTz = document.getElementById('fromTimezone').value;
+            const toTz = document.getElementById('toTimezone').value;
+            
+            // This is a simplified conversion. In a real app, you'd use a proper
+            // time zone library like moment-timezone for accurate conversions.
+            const timeDiff = getTimeDifference(fromTz, toTz);
+            const convertedTime = new Date(inputTime.getTime() + timeDiff * 3600000);
+            
+            document.getElementById('result').innerText = 
+                `Converted time: ${convertedTime.toLocaleString()} ${toTz}`;
+        }
+
+        function getTimeDifference(fromTz, toTz) {
+            // This is a simplified time difference calculation.
+            // In a real app, you'd use a proper time zone library.
+            const tzOffsets = {
+                'GMT': 0, 'EST': -5, 'CST': -6, 'MST': -7, 'PST': -8,
+                'BST': 1, 'IST': 5.5, 'JST': 9, 'AEST': 10, 'NZST': 12
+            };
+            return tzOffsets[toTz] - tzOffsets[fromTz];
+        }
+
+        function setAlarm() {
+            const alarmTime = new Date(document.getElementById('alarmTime').value);
+            const eventTitle = document.getElementById('eventTitle').value;
+            const alarmId = Date.now();
+            
+            const alarm = { id: alarmId, time: alarmTime, title: eventTitle };
+            const alarms = JSON.parse(localStorage.getItem('alarms') || '[]');
+            alarms.push(alarm);
+            localStorage.setItem('alarms', JSON.stringify(alarms));
+            
+            displayAlarms();
+            scheduleAlarm(alarm);
+        }
+
+        function displayAlarms() {
+            const alarms = JSON.parse(localStorage.getItem('alarms') || '[]');
+            const alarmsDiv = document.getElementById('alarms');
+            alarmsDiv.innerHTML = '<h3>Scheduled Alarms:</h3>';
+            alarms.forEach(alarm => {
+                alarmsDiv.innerHTML += `
+                    <p>${alarm.title} - ${new Date(alarm.time).toLocaleString()}
+                    <button onclick="deleteAlarm(${alarm.id})">Delete</button></p>
+                `;
+            });
+        }
+
+        function deleteAlarm(id) {
+            let alarms = JSON.parse(localStorage.getItem('alarms') || '[]');
+            alarms = alarms.filter(alarm => alarm.id !== id);
+            localStorage.setItem('alarms', JSON.stringify(alarms));
+            displayAlarms();
+        }
+
+        function scheduleAlarm(alarm) {
+            const now = new Date();
+            const alarmTime = new Date(alarm.time);
+            const timeUntilAlarm = alarmTime - now;
+            
+            if (timeUntilAlarm > 0) {
+                setTimeout(() => {
+                    alert(`Alarm: ${alarm.title}`);
+                    deleteAlarm(alarm.id);
+                }, timeUntilAlarm);
+            }
+        }
+
+        window.onload = function() {
+            populateTimezones();
+            displayAlarms();
+            
+            // Schedule all saved alarms
+            const alarms = JSON.parse(localStorage.getItem('alarms') || '[]');
+            alarms.forEach(scheduleAlarm);
+        };
+    </script>
+</body>
+</html>
